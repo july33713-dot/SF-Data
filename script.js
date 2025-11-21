@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     try {
       const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbyNJItHq5_sNr62WQeH11N_yd1hvny8G5FMtJpuCqxXY4ZJW7KvOBLajizkbG87CcHH/exec",
+        "https://script.google.com/macros/s/AKfycbzg4nmRT8aDDzFWQYidXIk2MGkv86K2Eo3JIyd97_-X5bU72YeYjH7LNYFfmTs5ZgAx/exec",
         {
           method: "POST",
           body: JSON.stringify(data),
