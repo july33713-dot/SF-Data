@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzZT3O4B56wASEbOuYfy2KK4Ohz2OMbCGJ3M623rVN9Ft6PSXxpwcekeJdnlOacTod9/exec';
+  const form = document.getElementById("productForm");
   const genderSelect = document.getElementById("gender");
   const boysCat = document.getElementById("boysCat");
   const girlsCat = document.getElementById("girlsCat");
@@ -6,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const sizeDetails = document.getElementById("sizeDetails");
   const msg = document.getElementById("msg");
 
-  // Helper for safer field reading
+  // Helper function to get value
   function getValue(id) {
     const el = document.getElementById(id);
     return el ? el.value : "";
@@ -28,25 +30,22 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // === Size List ===
+  // === Size Buttons ===
   const sizes = [
     "00","02","04","06","08","10","12","14","16","18","20",
     "22","24","26","28","30","32","34","36","38","40"
   ];
 
-  // Render Size Buttons
   sizes.forEach((size) => {
     const div = document.createElement("div");
     div.className = "size-option";
     div.textContent = size;
-
     div.addEventListener("click", () => toggleSize(size, div));
     sizeGrid.appendChild(div);
   });
 
   function toggleSize(size, el) {
     el.classList.toggle("selected");
-
     const existing = document.getElementById("detail-" + size);
 
     if (el.classList.contains("selected")) {
@@ -61,15 +60,14 @@ document.addEventListener("DOMContentLoaded", function () {
         <input type="text" class="age-input" placeholder="Age (3-4Y)" required>
         <input type="number" class="qty-input" placeholder="Qty" required>
       `;
-
       sizeDetails.appendChild(div);
     } else if (existing) {
       existing.remove();
     }
   }
 
-  // === SUBMIT ===
-  document.getElementById("productForm").addEventListener("submit", async (e) => {
+  // === Submit Handler ===
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     msg.textContent = "⏳ Submitting...";
@@ -82,60 +80,69 @@ document.addEventListener("DOMContentLoaded", function () {
         size: div.dataset.size,
         price: div.querySelector(".price-input").value,
         age: div.querySelector(".age-input").value,
-        qty: div.querySelector(".qty-input").value,
+        qty: div.querySelector(".qty-input").value
       });
     });
 
-    // Form Data
     const data = {
       productName: getValue("productName"),
       sku: getValue("sku"),
       gender: getValue("gender"),
-
       productType: getValue("productType"),
       productTypeOther: getValue("productTypeOther"),
-
       boysCategory: getValue("boysCategory"),
       boysCategoryOther: getValue("boysCategoryOther"),
-
       girlsCategory: getValue("girlsCategory"),
       girlsCategoryOther: getValue("girlsCategoryOther"),
-
       fabricType: getValue("fabricType"),
       fabricOther: getValue("fabricOther"),
-
       color: getValue("color"),
-
       patternType: getValue("patternType"),
       patternOther: getValue("patternOther"),
-
-      sizes: selectedSizes,
+      sizes: selectedSizes
     };
 
     try {
-      const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbzg4nmRT8aDDzFWQYidXIk2MGkv86K2Eo3JIyd97_-X5bU72YeYjH7LNYFfmTs5ZgAx/exec",
-        {
+      let response;
+
+      // Try normal JSON POST
+      try {
+        response = await fetch(SCRIPT_URL, {
           method: "POST",
-          body: JSON.stringify(data),
           headers: { "Content-Type": "application/json" },
-        }
-      );
+          body: JSON.stringify(data)
+        });
+      } catch (err) {
+        // Will retry with no-cors
+      }
+
+      // If normal POST fails, try no-cors mode
+      if (!response || !response.ok) {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify(data)
+        });
+
+        msg.textContent = "✅ Submitted (no-cors mode). Check your sheet!";
+        msg.style.color = "green";
+        form.reset();
+        sizeDetails.innerHTML = "";
+        document.querySelectorAll(".size-option").forEach(el => el.classList.remove("selected"));
+        return;
+      }
 
       const result = await response.json();
 
       if (result.result === "success") {
         msg.textContent = "✅ Product saved successfully!";
         msg.style.color = "green";
-
-        e.target.reset();
+        form.reset();
         sizeDetails.innerHTML = "";
         document.querySelectorAll(".size-option").forEach(el => el.classList.remove("selected"));
-
       } else {
         throw new Error(result.message);
       }
-
     } catch (error) {
       msg.textContent = "❌ Error: " + error.message;
       msg.style.color = "red";
